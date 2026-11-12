@@ -4,7 +4,7 @@ Converts speaker-diarized, per-word timed transcription JSON into a clean,
 Subtitle-Edit-friendly `.srt`. Pure Python 3.8+ standard library - no third-party
 packages are needed at runtime (tkinter ships with the python.org Windows installer).
 
-```
+```sh
 json_to_srt/
 ├── tests/test_core.py    # unit tests (python -m unittest discover -s tests)
 ├── json_to_srt.exe       # self-contained command line interface (Python does not need to be installed).
