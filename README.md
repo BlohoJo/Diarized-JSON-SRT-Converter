@@ -6,10 +6,11 @@ packages are needed at runtime (tkinter ships with the python.org Windows instal
 
 ```
 json_to_srt/
+├── tests/test_core.py    # unit tests (python -m unittest discover -s tests)
+├── json_to_srt.exe       # self-contained command line interface (Python does not need to be installed).
 ├── json_to_srt_core.py   # converter engine + CLI (single source of truth for all settings)
 ├── json_to_srt_gui.py    # Windows tkinter front-end
-├── tests/test_core.py    # unit tests (python -m unittest discover -s tests)
-├── samples/              # .srt outputs produced from the two sample inputs (+ conversion reports)
+├── JSONtoSRT.exe         # self-contained GUI (Python does not need to be installed).
 └── README.md
 ```
 
@@ -133,21 +134,6 @@ Pipeline: **parse → sentence units → cue chunks → dialog assembly → timi
    Splitting cannot lower CPS when speech is genuinely fast, so CPS/WPM violations that cannot be fixed by
    extension are *reported* (counts in the log) rather than fragmenting the cue.
 9. **Rendering** - SRT with `-->` sanitising (from the notebook's `write_srt`), chosen encoding, CRLF.
-
-## Sample results (`samples/`)
-
-| File | Cues | Notes |
-|---|---|---|
-| `AirCaps_default.srt` | 471 | identical with `--include-sdh 0` (AirCaps has no events) |
-| `AirCaps_speaker-names.srt` | 485 | `Speaker N:` labels on speaker change |
-| `ElevenLabs_sdh-on.srt` | 832 | 373 events kept (inline + stand-alone) |
-| `ElevenLabs_sdh-off.srt` | 651 | no `[`…`]` left, no empty cues / double spaces |
-| `ElevenLabs_sdh-on_speaker-names.srt`, `ElevenLabs_sdh-off_speaker-names.srt` | 856 / 676 | |
-
-Each `.report.txt` holds the conversion log. All six outputs pass: no line > 43, no cue > 2 lines,
-no cue > 8000 ms, min gap 24 ms everywhere, no two speakers on one line. Remaining `> max CPS` /
-`< min duration` counts come from genuinely fast or overlapping speech and - in the ElevenLabs file -
-from an ASR hallucination loop at 01:09:36 whose words all carry identical zero-length timestamps.
 
 ## Tests & headless GUI check
 
