@@ -78,7 +78,7 @@ Booleans on the CLI accept `0|1` (also `true/false/yes/no`).
 Every setting is user-controllable via the GUI, the command line, or a settings/preset file. Defaults match the **Subtitle Edit 3** *General* profile shown below:
 
 <p align="center">
-  <img width="871" height="591" alt="Subtitle Edit 3 - General Settings" src="Subtitle_Edit_Settings.png" />
+  <img width="871" height="591" alt="Subtitle Edit 3 - General Settings" src="https://github.com/user-attachments/assets/665c5102-73f9-4637-be68-aeed7e2c5a01" />
 </p>
 
 ### Rules
