@@ -1,8 +1,6 @@
 # JSON → SRT converter (AirCaps A5S / ElevenLabs Scribe)
 
-Converts speaker-diarized, per-word timed transcription JSON into a clean,
-Subtitle-Edit-friendly `.srt`. Pure Python 3.8+ standard library - no third-party
-packages are needed at runtime (tkinter ships with the python.org Windows installer).
+Converts speaker-diarized, per-word timed transcription JSON into a clean, Subtitle-Edit-friendly `.srt`. Pure Python 3.8+ standard library - no third-party packages are needed at runtime (tkinter ships with the python.org Windows installer).
 
 ```sh
 json_to_srt/
@@ -42,7 +40,7 @@ Booleans on the CLI take `0|1` (also `true/false/yes/no`).
 
 Defaults mirror the following Subtitle Edit 3 *General* settings:
 
-<img width="871" height="591" alt="Subtitle_Edit_Settings" src="https://github.com/user-attachments/assets/665c5102-73f9-4637-be68-aeed7e2c5a01" />
+<img width="871" height="591" alt="Subtitle_Edit_Settings" src="Subtitle_Edit_Settings.png" />
 <br><br>
 
 | Tab | Setting (CLI flag) | Default | Meaning |
@@ -89,34 +87,12 @@ Defaults mirror the following Subtitle Edit 3 *General* settings:
 
 Pipeline: **parse → sentence units → cue chunks → dialog assembly → timing → render**.
 
-1. **Parsing** - words are grouped into speaker *turns* (AirCaps `utterances`, ElevenLabs `segments`),
-   turns are sorted by start time and same-speaker neighbours are merged. Missing/non-monotonic word
-   times are repaired. SDH tokens are flagged (`type == audio_event` or `^[...]$` / `^(...)$`).
-2. **Sentence ends** - port of the notebook's `is_valid_sentence_end` (terminal `.?!` + optional closing
-   quotes/brackets, title abbreviation list, `(?:[a-z]{1,3}\.){2,}` acronym rule such as `U.S.`, `A.N.`,
-   `Ph.D.`). Extended with: single initials (`J.`), ellipsis handling (`well...` breaks only before a
-   capital), numeric abbreviations that only count before a digit (`No. 5` vs. `No. Stop it.`), decimals,
-   a much longer built-in list, and user extensions (setting + `abbreviations.txt`).
-   The notebook additionally called NLTK Punkt; that dependency was dropped in favour of these rules
-   so the tool has no third-party requirements.
-3. **Units** - like the notebook's `get_srt_segments` step 1: break on sentence end or speaker change.
-   Added: break on long pauses (`pause_break_ms`, the piece is flagged as a *continuation*), and
-   event grouping. Excluding SDH filters the tokens *before* segmentation, so sentences re-join cleanly
-   (no empty cues, double spaces or orphan dashes - verified on the ElevenLabs sample).
-4. **Chunking** - the notebook used greedy fill (`can_fit`: max duration, line width, line count) and an
-   orphan fix-up that moved words backwards (`MIN_SPLIT_SENTENCE_LENGTH`). This is replaced by a small
-   dynamic programme: first the minimum number of cues that satisfy the same `can_fit` rules, then - among
-   those - the split with the best balance *and* break points (sentence end ≫ comma/semicolon/dash >
-   before a conjunction/preposition > pause in speech; breaking after articles/prepositions/auxiliaries
-   is penalised; pieces under `min_chunk_chars` are penalised).
-5. **Dialog cues** - new. A different speaker who starts within `dialog_merge_max_gap_ms` of the previous
-   cue joins it as a second line when both fit (each speaker always on their own line, max 2 speakers). If
-   that requires splitting the newcomer's sentence, the split is only accepted when the sentence needed
-   several cues anyway or the remainder is substantial. A look-ahead prefers ending a sentence on a single
-   line when the next speaker could share that cue. Same-speaker short sentences are merged when the
-   whole sentence fits (`Yes. Yes, that's a great idea.`).
-6. **Dashes** - per `dialog_style`. A line gets its dash only if the cue has two speakers **and** that line
-   starts a sentence; a line continuing a sentence from the previous cue gets none:
+1. **Parsing** - words are grouped into speaker *turns* (AirCaps `utterances`, ElevenLabs `segments`), turns are sorted by start time and same-speaker neighbours are merged. Missing/non-monotonic word times are repaired. SDH tokens are flagged (`type == audio_event` or `^[...]$` / `^(...)$`).
+2. **Sentence ends** - port of the notebook's `is_valid_sentence_end` (terminal `.?!` + optional closing quotes/brackets, title abbreviation list, `(?:[a-z]{1,3}\.){2,}` acronym rule such as `U.S.`, `A.N.`, `Ph.D.`). Extended with: single initials (`J.`), ellipsis handling (`well...` breaks only before a capital), numeric abbreviations that only count before a digit (`No. 5` vs. `No. Stop it.`), decimals, a much longer built-in list, and user extensions (setting + `abbreviations.txt`). The notebook additionally called NLTK Punkt; that dependency was dropped in favour of these rules so the tool has no third-party requirements.
+3. **Units** - like the notebook's `get_srt_segments` step 1: break on sentence end or speaker change. Added: break on long pauses (`pause_break_ms`, the piece is flagged as a *continuation*), and event grouping. Excluding SDH filters the tokens *before* segmentation, so sentences re-join cleanly (no empty cues, double spaces or orphan dashes - verified on the ElevenLabs sample).
+4. **Chunking** - the notebook used greedy fill (`can_fit`: max duration, line width, line count) and an orphan fix-up that moved words backwards (`MIN_SPLIT_SENTENCE_LENGTH`). This is replaced by a small dynamic programme: first the minimum number of cues that satisfy the same `can_fit` rules, then - among those - the split with the best balance *and* break points (sentence end ≫ comma/semicolon/dash > before a conjunction/preposition > pause in speech; breaking after articles/prepositions/auxiliaries is penalised; pieces under `min_chunk_chars` are penalised).
+5. **Dialog cues** - new. A different speaker who starts within `dialog_merge_max_gap_ms` of the previous cue joins it as a second line when both fit (each speaker always on their own line, max 2 speakers). If that requires splitting the newcomer's sentence, the split is only accepted when the sentence needed several cues anyway or the remainder is substantial. A look-ahead prefers ending a sentence on a single line when the next speaker could share that cue. Same-speaker short sentences are merged when the whole sentence fits (`Yes. Yes, that's a great idea.`).
+6. **Dashes** - per `dialog_style`. A line gets its dash only if the cue has two speakers **and** that line starts a sentence; a line continuing a sentence from the previous cue gets none:
    ```
    - It's got to come from somewhere else.
    - Yeah, that one's also fun
@@ -124,28 +100,16 @@ Pipeline: **parse → sentence units → cue chunks → dialog assembly → timi
    because the lows are going to suck, right?
    - So it hits you on both sides.
    ```
-7. **Line balancing** - the notebook binary-searched the narrowest width keeping the same line count. Here
-   the minimum line count is kept and the break is chosen by cost = |len − target| summed over lines plus
-   penalties/bonuses (sentence end −20, clause punctuation −2, before conjunction/preposition −1.5, after a
-   no-break word +3). Balance dominates, as requested:
-   `played on Broadway, on / television, and in films.` Text ≤ `unbreak_shorter_than` stays on one line.
-8. **Timing** - new (the notebook wrote raw word times): max duration cap; speech-first repair of stand-alone
-   SDH cues (clipped around speech, attached as an extra line, or dropped with a warning); overlap repair
-   between consecutive cues (push later / trim / split the overlap); extension to min duration and to
-   max CPS/WPM (into the gap before the next cue), then toward optimal CPS limited by `max_end_extension_ms`;
-   if still short, the start is pulled earlier; optional frame snapping; statistics.
-   Splitting cannot lower CPS when speech is genuinely fast, so CPS/WPM violations that cannot be fixed by
-   extension are *reported* (counts in the log) rather than fragmenting the cue.
+7. **Line balancing** - the notebook binary-searched the narrowest width keeping the same line count. Here the minimum line count is kept and the break is chosen by cost = |len − target| summed over lines plus penalties/bonuses (sentence end −20, clause punctuation −2, before conjunction/preposition −1.5, after a no-break word +3). Balance dominates, as requested: `played on Broadway, on / television, and in films.` Text ≤ `unbreak_shorter_than` stays on one line.
+8. **Timing** - new (the notebook wrote raw word times): max duration cap; speech-first repair of stand-alone SDH cues (clipped around speech, attached as an extra line, or dropped with a warning); overlap repair between consecutive cues (push later / trim / split the overlap); extension to min duration and to max CPS/WPM (into the gap before the next cue), then toward optimal CPS limited by `max_end_extension_ms`; if still short, the start is pulled earlier; optional frame snapping; statistics. Splitting cannot lower CPS when speech is genuinely fast, so CPS/WPM violations that cannot be fixed by extension are *reported* (counts in the log) rather than fragmenting the cue.
 9. **Rendering** - SRT with `-->` sanitising (from the notebook's `write_srt`), chosen encoding, CRLF.
 
 ## Tests & headless GUI check
 
-```
+```sh
 python -m unittest discover -s tests          # 19 tests
 ```
-The GUI was exercised under Xvfb (widgets for every setting, preset save/load, settings persistence,
-a full conversion through the worker thread). It was **not** run on a real Windows desktop here;
-it uses only ttk widgets and the `vista` theme when available.
+The GUI was exercised under Xvfb (widgets for every setting, preset save/load, settings persistence, a full conversion through the worker thread).
 
 ## Building a Windows .exe (included in repository)
 
@@ -155,13 +119,10 @@ pyinstaller --noconfirm --onefile --windowed --name JSONtoSRT json_to_srt_gui.py
 :: CLI build:
 pyinstaller --noconfirm --onefile --console --name json_to_srt json_to_srt_core.py
 ```
-- `JSONtoSRT.exe` is the self-contained GUI (tkinter is bundled automatically). You can drop a `.json`
-file onto the exe - it is pre-filled as the input.
+- `JSONtoSRT.exe` is the self-contained GUI (tkinter is bundled automatically). You can drop a `.json` file onto the exe - it is pre-filled as the input.
 - `json_to_srt.exe` is the command line interface.
 
 ## Known limitations
-* Diarization errors in the source (speaker flips mid-sentence) are reproduced; the notebook's
-  punctuation-based speaker re-alignment needed its own punctuation model and was not ported.
+* Diarization errors in the source (speaker flips mid-sentence) are reproduced; the notebook's punctuation-based speaker re-alignment needed its own punctuation model and was not ported.
 * English-centric heuristics for conjunction/preposition break points and abbreviations (extensible).
-* Zero-length or duplicated words from ASR glitches can still yield very short cues when there is no
-  room to extend them; they are counted in the log.
+* Zero-length or duplicated words from ASR glitches can still yield very short cues when there is no room to extend them; they are counted in the log.
