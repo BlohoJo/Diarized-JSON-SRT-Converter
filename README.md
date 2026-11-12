@@ -40,7 +40,7 @@ Booleans on the CLI take `0|1` (also `true/false/yes/no`).
 
 Defaults mirror the following Subtitle Edit 3 *General* settings:
 
-<img width="871" height="591" alt="Subtitle_Edit_Settings" src="Subtitle_Edit_Settings.png" />
+<img width="871" height="591" alt="Subtitle_Edit_Settings" src="https://github.com/user-attachments/assets/665c5102-73f9-4637-be68-aeed7e2c5a01" />
 <br><br>
 
 | Tab | Setting (CLI flag) | Default | Meaning |
