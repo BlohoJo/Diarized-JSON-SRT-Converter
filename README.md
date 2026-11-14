@@ -1,8 +1,12 @@
 # JSON → SRT Converter (AirCaps A5S / ElevenLabs Scribe)
 
-Converts transcription JSON - with per-word timestamps and speaker identification - into a clean, industry-standard `.srt` subtitle file. Fully compatible with [Subtitle Edit](https://www.nikse.dk/subtitleedit) and other subtitle editors.
+Converts transcription JSON - with per-word timestamps and speaker identification - into a clean, industry-standard `.srt` subtitle file. Fully compatible with [Subtitle Edit](https://github.com/SubtitleEdit/subtitleedit) and other subtitle editors.
 
 Built with pure Python 3.8+ standard library - no third-party packages are needed at runtime. The `tkinter` GUI toolkit ships with the standard [python.org](https://www.python.org/downloads/) Windows installer.
+
+<p align="center">
+  <img width="871" height="596" alt="JSONtoSRT_GUI.png" src="https://github.com/user-attachments/assets/932aafb8-2ce8-48ed-8a6a-643a35224f42" />
+</p>
 
 ### Features at a Glance
 
@@ -24,8 +28,8 @@ json_to_srt/
 ├── README.md
 │
 │   After building with PyInstaller (see below):
-├── json_to_srt.exe        # standalone CLI - no Python install needed
-└── JSONtoSRT.exe          # standalone GUI - no Python install needed
+├── JSONtoSRT.exe          # standalone CLI - no Python install needed
+└── JSONtoSRT_GUI.exe      # standalone GUI - no Python install needed
 ```
 
 ---
@@ -46,7 +50,7 @@ The converter automatically identifies which format you're using - no manual sel
 
 ### GUI (Windows)
 
-Run `python json_to_srt_gui.py` (or double-click `JSONtoSRT.exe` if you've [built it](#building-standalone-executables-optional)). Select your input `.json` file, choose an output location, adjust any settings you like, and click **Convert**.
+Run `python json_to_srt_gui.py` (or double-click `JSONtoSRT_GUI.exe` if you've [built it](#building-standalone-executables-optional)). Select your input `.json` file, choose an output location, adjust any settings you like, and click **Convert**.
 
 You can also drag-and-drop a `.json` file onto the `.exe` - it will be pre-filled as the input.
 
@@ -128,7 +132,7 @@ Every setting is user-controllable via the GUI, the command line, or a settings/
 | `extra_abbreviations` | *(empty)* | Comma-separated list of additional abbreviations to recognize (e.g., `Lt., Cmdr., Sgt.`). A file named `abbreviations.txt` (one abbreviation per line) in the settings folder is also loaded automatically if present. |
 | `merge_short_sentences` | on | A short sentence from the same speaker is combined with the previous cue if the entire sentence fits. Keeps quick exchanges like `Yes. Absolutely.` together. |
 | `sentence_merge_max_gap_ms` | 700 | Maximum silence gap (ms) between sentences for merging to occur. |
-| `pause_break_ms` | 1500 | A silence gap within a sentence longer than this (ms) forces a new cue, even mid-sentence. Set to `0` to disable. |
+| `pause_break_ms` | 1500 | A silence gap within a sentence longer than this (ms) forces a new cue, even mid-sentence - but only when both halves are at least `min_chunk_chars` long, so a pause never strands a tiny fragment like `my feet.` in its own cue. Set to `0` to disable. |
 | `dialog_merge_max_gap_ms` | 1000 | A new speaker can share a cue with the previous speaker only if they start speaking within this many milliseconds. |
 | `min_chunk_chars` | 20 | Minimum character count for a split piece. Shorter fragments are penalized to prevent orphan lines. |
 | `max_speakers_per_cue` | 2 | Maximum number of speakers allowed in a single cue. Each speaker always gets their own line. |
@@ -236,7 +240,7 @@ The balancing algorithm weighs line-length symmetry, punctuation placement, and 
 
 Raw word timestamps from transcription services often need refinement for a comfortable viewing experience:
 
-- **Minimum / maximum duration** - cues are extended or split to stay within the configured bounds (default: 1-8 seconds).
+- **Minimum / maximum duration** - cues are extended or split to stay within the configured bounds (default: 1–8 seconds).
 - **Reading speed enforcement** - cue durations are extended into available gaps to bring the reading speed down to `max_cps` first, then toward `optimal_cps` (limited by `max_end_extension_ms`). If a cue is still too fast after all possible extension, it is flagged in the conversion report rather than being split into unreadable fragments.
 - **Overlap repair** - if two consecutive cues overlap in time, they are adjusted (pushed apart, trimmed, or split) while preserving the minimum gap.
 - **SDH timing** - standalone sound-description events are timed so they don't steal display time from speech cues.
@@ -252,27 +256,10 @@ The final cues are written as a standard `.srt` file:
 
 ---
 
-## Sample Results
-
-The `samples/` folder contains outputs generated from two sample inputs - both transcribed from the same source audio:
-
-| File | Cues | Notes |
-|---|---|---|
-| `AirCaps_default.srt` | 471 | Standard conversion (AirCaps has no SDH events) |
-| `AirCaps_speaker-names.srt` | 485 | Speaker labels shown on speaker changes |
-| `ElevenLabs_sdh-on.srt` | 832 | 373 sound description events kept (inline + standalone) |
-| `ElevenLabs_sdh-off.srt` | 651 | Sound descriptions removed - no empty cues or leftover artifacts |
-| `ElevenLabs_sdh-on_speaker-names.srt` | 856 | SDH on, with speaker labels |
-| `ElevenLabs_sdh-off_speaker-names.srt` | 676 | SDH off, with speaker labels |
-
-Each `.report.txt` file contains the full conversion log. All outputs pass validation: no line exceeds 43 characters, no cue exceeds 2 lines or 8000 ms, the minimum gap is 24 ms everywhere, and no two speakers share a single line. Any remaining CPS or minimum-duration violations are from genuinely fast or overlapping speech that cannot be resolved by extending cue durations - these are itemized in each report.
-
----
-
 ## Running the Tests
 
 ```sh
-python -m unittest discover -s tests    # 19 unit tests
+python -m unittest discover -s tests    # 21 unit tests
 ```
 
 Tests cover default settings validation, abbreviation handling, dialog dash rules, line balancing (including the "played on Broadway" case), SDH removal, and timing rule enforcement.
@@ -287,13 +274,13 @@ If you'd like standalone `.exe` files that run without a Python installation:
 pip install pyinstaller
 
 :: Build the GUI executable
-pyinstaller --noconfirm --onefile --windowed --name JSONtoSRT json_to_srt_gui.py
+pyinstaller --noconfirm --onefile --windowed --name JSONtoSRT_GUI json_to_srt_gui.py
 
 :: Build the CLI executable
-pyinstaller --noconfirm --onefile --console --name json_to_srt json_to_srt_core.py
+pyinstaller --noconfirm --onefile --console --name JSONtoSRT json_to_srt_core.py
 ```
 
-The resulting executables appear in the `dist/` folder. `JSONtoSRT.exe` is fully self-contained - `tkinter` is bundled automatically. You can drag-and-drop a `.json` file onto the GUI `.exe` to pre-fill the input path.
+The resulting executables appear in the `dist/` folder. `JSONtoSRT_GUI.exe` is fully self-contained - `tkinter` is bundled automatically. You can drag-and-drop a `.json` file onto the GUI `.exe` to pre-fill the input path.
 
 ---
 
