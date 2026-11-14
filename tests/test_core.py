@@ -68,6 +68,35 @@ class LineBalanceTests(unittest.TestCase):
         self.assertEqual(lines[0], "Well, just YouTube it.")
 
 
+class PauseBreakTests(unittest.TestCase):
+    def test_pause_does_not_strand_short_fragment(self):
+        """Real case: 2 s pause before "my feet." must not create a cue of its own."""
+        ws = words("Each day I wake up and greet the world at my feet.", start=0, step=600)
+        # whole sentence slightly longer than max duration, pause of 2 s before "my"
+        for w in ws[-2:]:
+            w.start += 2000
+            w.end += 2000
+        cues, _ = run([ws])
+        texts = [c.text for c in cues]
+        self.assertEqual(len(cues), 2)
+        self.assertNotIn("my feet.", texts)
+        self.assertTrue(texts[0].startswith("Each day"))
+        self.assertTrue(texts[1].endswith("my feet."))
+        self.assertGreaterEqual(min(len(t) for t in texts), 20)
+
+    def test_pause_still_breaks_substantial_halves(self):
+        ws = words("I honestly thought that we were finished with all of this and then suddenly the whole thing started over again.",
+                   start=0, step=300)
+        # 2 s pause between "this" and "and"
+        idx = [w.text for w in ws].index("and", 5)
+        for w in ws[idx:]:
+            w.start += 2000
+            w.end += 2000
+        cues, _ = run([ws])
+        self.assertTrue(cues[0].text.endswith("this"))
+        self.assertLessEqual(cues[0].end, ws[idx - 1].end + 1500)
+
+
 class DialogTests(unittest.TestCase):
     def test_two_speakers_dashes_and_continuation(self):
         a = words("It's got to come from somewhere else.", "speaker_1", start=0)
