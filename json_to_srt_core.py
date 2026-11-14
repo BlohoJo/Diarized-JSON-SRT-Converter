@@ -32,7 +32,7 @@ import sys
 from dataclasses import dataclass, field
 from typing import Any, Callable, Dict, List, Optional, Sequence, Tuple
 
-__version__ = "1.0.0"
+__version__ = "1.1"
 
 APP_NAME = "JSONtoSRT"
 
@@ -595,6 +595,33 @@ class SentenceEndDetector:
 # Segmentation into Units
 # --------------------------------------------------------------------------------------
 
+def _text_len(words: Sequence["Word"]) -> int:
+    return sum(len(w.text) for w in words) + max(0, len(words) - 1)
+
+
+def _pause_split_ok(words: Sequence["Word"], cur: Sequence["Word"], i: int, min_chunk: int,
+                    detector: "SentenceEndDetector") -> bool:
+    """May a long pause before words[i] force a cue break?
+
+    Only if the text already collected (`cur`) and the rest of the current sentence
+    (words[i:] up to its sentence end) are both at least `min_chunk` characters, so the
+    pause never strands a tiny fragment such as "my feet." in a cue of its own.
+    """
+    if min_chunk <= 0:
+        return True
+    if _text_len([w for w in cur if not w.is_event]) < min_chunk:
+        return False
+    rest: List["Word"] = []
+    for k in range(i, len(words)):
+        w = words[k]
+        rest.append(w)
+        if not w.is_event:
+            nxt = words[k + 1].text if k + 1 < len(words) else None
+            if detector.is_sentence_end(w.text, nxt):
+                break
+    return _text_len([w for w in rest if not w.is_event]) >= min_chunk
+
+
 def build_units(turns: List[List[Word]], settings: Dict[str, Any], detector: SentenceEndDetector,
                 report: ConversionReport) -> List[Unit]:
     """Cut speaker turns into Units (sentence-sized pieces).
@@ -606,6 +633,7 @@ def build_units(turns: List[List[Word]], settings: Dict[str, Any], detector: Sen
     inline_sdh = settings["sdh_mode"] == "inline"
     sdh_upper = bool(settings["sdh_uppercase"])
     pause_break = int(settings["pause_break_ms"])
+    min_chunk = int(settings["min_chunk_chars"])
     sdh_gap = int(settings["sdh_group_gap_ms"])
     inline_event_max_ms = int(settings["inline_event_max_ms"])
     units: List[Unit] = []
@@ -670,7 +698,11 @@ def build_units(turns: List[List[Word]], settings: Dict[str, Any], detector: Sen
                         flush(starts_sentence if not prev_ended_sentence else True)
                 elif prev_ended_sentence:
                     flush(True)
-                elif pause_break > 0 and gap > pause_break:
+                elif pause_break > 0 and gap > pause_break and _pause_split_ok(words, cur, i, min_chunk, detector):
+                    # A long pause inside a sentence only forces a cue break when BOTH
+                    # halves stay substantial.  Otherwise (e.g. "...greet the world at"
+                    # | "my feet.") the whole sentence is handed to the Chunker, which
+                    # splits it on balance/duration and still favours the pause.
                     flush(False)
             cur.append(w)
             if not w.is_event:
